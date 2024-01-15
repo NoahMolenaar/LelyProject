@@ -1,0 +1,16 @@
+na_count <- sum(is.na(milkings$device_key))
+print(which(is.na(milkings$device_key)))
+
+# Fill in the correct value for the missing value
+milkings <- milkings %>%
+  mutate(
+    device_key = ifelse(
+      row_number() == 6471, 'device-5', 
+      ifelse(
+        row_number() == 6472, 'device-0',
+        ifelse(
+          row_number() == 237936, 'device-0', device_key
+        )
+      )
+    )
+  )
