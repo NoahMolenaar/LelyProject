@@ -1,0 +1,106 @@
+# Install and load necessary packages
+if (!require("dplyr")) install.packages("dplyr")
+if (!require("readr")) install.packages("readr")
+if (!require("openxlsx")) install.packages("openxlsx")
+
+library(tidyr)
+library(readxl)
+library(dplyr)
+library(openxlsx)
+
+# Set the working directory
+setwd("C:/Users/johan/OneDrive/Documenten/Werkstukken uni/Jaar 4/Blok3/Case study/Data")
+
+# Import 'devices' data
+devices <- read.csv("devices.csv", header = TRUE)
+devices_location_bridge <- read_excel("devices_location_bridge.xlsx")
+locations <- read.csv("locations.csv", header = TRUE)
+milkings <- read.csv("milkings.csv", header = TRUE)
+
+# Merge milkings with devices_location_bridge
+milkings_ordered <- milkings %>%
+  left_join(devices_location_bridge, by = c("farm_key", "device_key", "location_key"))
+
+# Convert milking_visit_process_start_time_wall and milking_visit_process_end_time_wall to datetime
+milkings_ordered <- milkings_ordered %>%
+  mutate(
+    milking_visit_process_start_time_wall = as.POSIXct(milking_visit_process_start_time_wall, format = "%Y-%m-%d %H:%M:%S", tz = "UTC"),
+    milking_visit_process_end_time_wall = as.POSIXct(milking_visit_process_end_time_wall, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+  )
+
+# Assuming milkings_ordered is the dataframe you're working with
+
+# Step 1: Subset data for location-0 of farm-1
+subset_data <- milkings_ordered %>%
+  filter(location_key == "location-4", farm_key == "farm-9")
+
+# Step 2: Identify unique pairs of cows (if there are at least 2 unique cows)
+unique_cows <- subset_data %>%
+  distinct(animal_key)
+
+unique_cow_pairs <- combn(unique_cows$animal_key, 2, simplify = TRUE) 
+unique_cow_pairs <- unique_cow_pairs%>%
+  rbind(matrix(NA, nrow = 2, ncol = ncol(unique_cow_pairs)))
+
+for (i in 1:ncol(unique_cow_pairs)){
+  print(i)
+  cow1 <- unique_cow_pairs[1,i]
+  cow2 <- unique_cow_pairs[2,i]
+  
+  # Filter data for the current cow pair
+  cow_pair_data <- subset_data %>%
+    filter(animal_key %in% c(cow1, cow2)) %>%
+    arrange(milking_visit_process_start_time_wall) %>%
+    select(
+      farm_key,
+      location_key,
+      device_key,
+      animal_key,
+      milking_visit_process_start_time_wall,
+      milking_visit_process_end_time_wall
+    )
+  
+  # Extract numeric part from animal_key
+  cow_pair_data <- cow_pair_data %>%
+    mutate(animal_key_numeric = as.numeric(sub("cow-", "", animal_key)))
+  
+  # Identify consecutive uninterupted visits for each cow
+  cow_pair_data <- cow_pair_data %>%
+    group_by(
+      consecutive_visit_group = cumsum(c(TRUE, diff(animal_key_numeric) != 0)),
+      farm_key,
+      location_key,
+      animal_key
+    ) %>%
+    summarise(
+      start_time = min(milking_visit_process_start_time_wall),
+      end_time = max(milking_visit_process_end_time_wall)
+    )%>%
+    dplyr::mutate(
+      date = as.Date(start_time),
+    )
+  
+  # could be improved but works fine for now
+  cow_pair_data$time_diff <- rep(NA, nrow(cow_pair_data))
+  for (j in 2:nrow(cow_pair_data)){
+    cow_pair_data$time_diff[j]<-abs(difftime(cow_pair_data$start_time[j], cow_pair_data$end_time[j-1], units = "secs"))
+  }
+  
+  # Assuming cow_pair_data is the dataframe you're working with
+  
+  # Filter rows with time_diff below 40,000
+  filtered_data <- cow_pair_data %>%
+    filter(time_diff < 40000)
+  
+  # Group by cow pair and date
+  grouped_data <- filtered_data %>%
+    group_by(date) %>%
+    filter(n() >= 2) %>%
+    summarise(
+      average_time_diff = min(time_diff, na.rm = TRUE)
+    )
+  unique_cow_pairs[3,i] <- nrow(grouped_data)
+  unique_cow_pairs[4,i] <- mean(grouped_data$average_time_diff, na.rm = TRUE)
+}
+
+write.xlsx(unique_cow_pairs, "unique_cow_pairs.xlsx", rowNames = FALSE)
