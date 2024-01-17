@@ -1,0 +1,67 @@
+# Merge milkings with devices_location_bridge
+milkings_ordered <- milkings %>%
+  left_join(devices_location_bridge, by = c("farm_key", "device_key", "location_key"))
+
+# Convert milking_visit_process_start_time_wall and milking_visit_process_end_time_wall to datetime
+milkings_ordered <- milkings_ordered %>%
+  mutate(
+    milking_visit_process_start_time_wall = as.POSIXct(milking_visit_process_start_time_wall, format = "%Y-%m-%d %H:%M:%S", tz = "UTC"),
+    milking_visit_process_end_time_wall = as.POSIXct(milking_visit_process_end_time_wall, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+  )
+
+
+cow_data <- milkings_ordered %>%
+  filter(farm_key == "farm-0") %>%
+  select(
+    farm_key,
+    location_key,
+    device_key,
+    animal_key,
+    milking_visit_process_start_time_wall,
+    milking_visit_process_end_time_wall
+  )%>%
+  arrange(device_key,milking_visit_process_start_time_wall)%>%
+  mutate(
+    date = as.Date(milking_visit_process_start_time_wall))
+
+# Calculate time until the next cow comes, better than other way around for cleaning times
+cow_data$time_diff <- rep(NA, nrow(cow_data))
+for (j in 1:nrow(cow_data)){
+  cow_data$time_diff[j]<-abs(difftime(cow_data$milking_visit_process_start_time_wall[j+1], cow_data$milking_visit_process_end_time_wall[j], units = "secs"))
+}   
+
+no_cow_sum <- cow_data %>%
+  group_by(date) %>%
+  summarise(
+    count_gt_800 = sum(time_diff > 800),
+    sum_values_gt_800 = sum(ifelse(time_diff > 800, time_diff, 0)),
+    no_cow = sum(time_diff)
+  )
+
+cow_data_filtered <- cow_data %>%
+  filter(time_diff > 800)
+
+time_cleaning <- select(cow_data_filtered, 
+                        farm_key,
+                        location_key,
+                        device_key,
+                        animal_key,
+                        milking_visit_process_start_time_wall)
+
+time_cleaning$rounded_time <- round_date(time_cleaning$milking_visit_process_start_time_wall, "30 minutes")
+
+# Extract only the time portion from rounded_time
+time_cleaning$rounded_time <- format(time_cleaning$rounded_time, format = "%H:%M:%S")
+
+plots_list <- lapply(unique(time_cleaning$device_key), function(device) {
+  ggplot(subset(time_cleaning, device_key == device), aes(x = rounded_time)) +
+    geom_bar(fill = "blue", color = "black") +
+    labs(title = paste("Histogram of Rounded Times for Device:", device),
+         x = "Rounded Time",
+         y = "Frequency")
+})
+
+# Print each plot in the list
+for (i in seq_along(plots_list)) {
+  print(plots_list[[i]])
+}
