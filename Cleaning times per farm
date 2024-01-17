@@ -1,0 +1,41 @@
+Farm 0: 03:00, 11:00, 19:00
+Farm 1:
+Farm 2: location 1: device   5: 1:30, 13:30; device 1&2:    04:30, 16:30
+        location 2: device 1&8: 1:30, 13:30; device 6:      04:30, 16:30
+        location 4: device   3: 1:30, 13:30; device 10&11:  04:30, 16:30
+        location 5: device 4&7: 1:30, 13:30; device 9:      04:30, 16:30
+
+Farm 3: 05:30, 12:00, 20:00
+
+
+Farm-4: location-0: device 15:           05:00, 16:00 (partly)
+        location-1: device-13:           05:00, 16:00 (partly)
+        location-2: device-1, device-6:  05:00, 16:30 (partly)
+        location-3: device-0, device-12: 05:00, 16:00 (partly)
+        location-6: device-2, device-7:  05:00, 16:00 (partly)
+        location-7: device-3, device-11: 05:00, 16:30 (partly)
+
+farm-5  02:00, 13:00 (sometimes 12:30 instead 13:00)
+
+farm-6  location-0  device-6, device-7, device-10, device-11
+        location-1  device-2, device-3, device-4, device-8
+        location-5  device-0, device-1, device-5, device-9
+
+farm-7  location-0  device-4, device-8
+        location-1  device-1, device-5
+        location-2  device-6, device-7
+        location-3  device-3, device-11
+        location-4  device-0, device-9
+        location-5  device-2, device-10
+
+farm-8  location-0  device-1, device-20
+        location-3  device-6, device-13, device-14, device-17
+        location-4  device-12, device-16
+        location-5  device-3, device-7, device-8, device-19
+
+farm-9  location-0  device-2, device-6, device-8
+        location-2  device-0, device-1, device-11
+        location-3  device-4, device-5, device-10
+        location-4  device-3, device-7, device-9
+
+
