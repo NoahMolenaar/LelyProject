@@ -32,7 +32,7 @@ milkings_ordered <- milkings_ordered %>%
 
 # Step 1: Subset data for location-0 of farm-1
 subset_data <- milkings_ordered %>%
-  filter(location_key == "location-4", farm_key == "farm-9")
+  filter(location_key == "location-1", farm_key == "farm-1")
 
 # Step 2: Identify unique pairs of cows (if there are at least 2 unique cows)
 unique_cows <- subset_data %>%
@@ -40,9 +40,10 @@ unique_cows <- subset_data %>%
 
 unique_cow_pairs <- combn(unique_cows$animal_key, 2, simplify = TRUE) 
 unique_cow_pairs <- unique_cow_pairs%>%
-  rbind(matrix(NA, nrow = 2, ncol = ncol(unique_cow_pairs)))
+  rbind(matrix(NA, nrow = 5, ncol = ncol(unique_cow_pairs)))
 
-for (i in 1:ncol(unique_cow_pairs)){
+for (i in 1:10000){
+
   print(i)
   cow1 <- unique_cow_pairs[1,i]
   cow2 <- unique_cow_pairs[2,i]
@@ -58,7 +59,30 @@ for (i in 1:ncol(unique_cow_pairs)){
       animal_key,
       milking_visit_process_start_time_wall,
       milking_visit_process_end_time_wall
+    )%>%
+    dplyr::mutate(
+      date = as.Date(milking_visit_process_start_time_wall),
     )
+  
+  # Identify days when both cows visited the machine
+  visit_data <- cow_pair_data %>%
+    group_by(date) %>%
+    filter(n_distinct(animal_key) == 2) %>%
+    summarise(
+      visits_cow1 = sum(animal_key == cow1),
+      visits_cow2 = sum(animal_key == cow2)
+    )
+
+  # Store the results in the unique_cow_pairs matrix
+  unique_cow_pairs[3,i] <- nrow(visit_data)
+  unique_cow_pairs[4,i] <- mean(visit_data$visits_cow1, na.rm = TRUE)
+  unique_cow_pairs[5,i] <- mean(visit_data$visits_cow2, na.rm = TRUE)
+  
+  if (max(as.numeric(unique_cow_pairs[4,i]),as.numeric(unique_cow_pairs[5,i]))>10|as.numeric(unique_cow_pairs[3,i])<30) {
+    next  
+  }
+  
+  x<-min(as.numeric(unique_cow_pairs[4,52]),as.numeric(unique_cow_pairs[5,52]))
   
   # Extract numeric part from animal_key
   cow_pair_data <- cow_pair_data %>%
@@ -99,8 +123,29 @@ for (i in 1:ncol(unique_cow_pairs)){
     summarise(
       average_time_diff = min(time_diff, na.rm = TRUE)
     )
-  unique_cow_pairs[3,i] <- nrow(grouped_data)
-  unique_cow_pairs[4,i] <- mean(grouped_data$average_time_diff, na.rm = TRUE)
+  unique_cow_pairs[6,i] <- nrow(grouped_data)
+  unique_cow_pairs[7,i] <- mean(grouped_data$average_time_diff, na.rm = TRUE)
 }
 
-write.xlsx(unique_cow_pairs, "unique_cow_pairs.xlsx", rowNames = FALSE)
+# Export unique_cow_pairs to Excel
+#write.xlsx(list(unique_cow_pairs = unique_cow_pairs), "unique_cow_pairs.xlsx")
+
+# Find the threshold for the 5% lowest values
+threshold <- quantile(as.numeric(unique_cow_pairs[7,]), probs = 0.05, na.rm = TRUE)
+
+# Create an empty matrix for buddies
+buddies_matrix <- matrix(0, nrow = ncol(unique_cows), ncol = ncol(unique_cows))
+
+# Set values in the upper triangle based on the threshold
+for(i in 1:nrow(unique_cow_pairs))
+{
+  if(unique_cow_pairs[7,i]<threshold)
+  {
+    cow1<-as.numeric(sub("cow-", "", unique_cow_pairs[1,i]))
+    cow2<-as.numeric(sub("cow-", "", unique_cow_pairs[2,i]))
+    buddies_matrix[]
+  }
+}
+
+# Export buddies_matrix to Excel
+write.xlsx(list(buddies_matrix = buddies_matrix), "buddies_matrix.xlsx")
