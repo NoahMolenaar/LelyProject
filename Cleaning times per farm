@@ -33,7 +33,7 @@ farm-8  location-0  device-1, device-20
         location-4  device-12, device-16
         location-5  device-3, device-7, device-8, device-19
 
-farm-9  location-0  device-2, device-6, device-8
+farm-9  location-0  device-2, device-6 (02:30, 09:30, (less), 18:00), device-8 (02:00 (helft van 10:00); 10:00; 17:30 (helft van 10:00))
         location-2  device-0, device-1, device-11
         location-3  device-4, device-5, device-10
         location-4  device-3, device-7, device-9
