@@ -1,0 +1,128 @@
+# List of criteria
+criteria_list <- list(
+  list(
+    farm_key = "farm-0",
+    device_key = "device-0",
+    animal_key = "cow-27",
+    location_key = "location-14",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-12-11 03:59:45"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-12-11 03:59:45")
+  ),
+  list(
+    farm_key = "farm-6",
+    device_key = "device-1",
+    animal_key = "cow-433",
+    location_key = "location-5",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-11-27 03:32:44"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-11-27 03:39:12")
+  ),
+  list(
+    farm_key = "farm-6",
+    device_key = "device-2",
+    animal_key = "cow-521",
+    location_key = "location-1",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-11-26 18:01:03"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-11-26 18:07:46")
+  ),
+  list(
+    farm_key = "farm-6",
+    device_key = "device-3",
+    animal_key = "cow-604",
+    location_key = "location-1",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-11-27 03:31:45"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-11-27 03:41:00")
+  ),
+  list(
+    farm_key = "farm-6",
+    device_key = "device-4",
+    animal_key = "cow-883",
+    location_key = "location-1",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-11-26 18:02:28"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-11-26 18:08:58")
+  ),
+  list(
+    farm_key = "farm-6",
+    device_key = "device-6",
+    animal_key = "cow-935",
+    location_key = "location-0",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-11-27 03:36:05"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-11-27 03:40:35")
+  ),
+  list(
+    farm_key = "farm-6",
+    device_key = "device-6",
+    animal_key = "cow-1087",
+    location_key = "location-0",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-06-07 05:49:47"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-06-07 05:54:31")
+  ),
+  list(
+    farm_key = "farm-6",
+    device_key = "device-7",
+    animal_key = "cow-942",
+    location_key = "location-0",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-11-24 02:16:48"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-11-24 02:23:12")
+  ),
+  list(
+    farm_key = "farm-6",
+    device_key = "device-7",
+    animal_key = "cow-944",
+    location_key = "location-0",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-06-07 05:47:39"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-06-07 05:54:09")
+  ),
+  list(
+    farm_key = "farm-6",
+    device_key = "device-7",
+    animal_key = "cow-1057",
+    location_key = "location-0",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-11-26 17:59:20"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-11-26 18:06:58")
+  ),
+  list(
+    farm_key = "farm-6",
+    device_key = "device-9",
+    animal_key = "cow-222",
+    location_key = "location-5",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-11-27 03:34:17"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-11-27 03:39:38")
+  ),
+  list(
+    farm_key = "farm-6",
+    device_key = "device-9",
+    animal_key = "cow-357",
+    location_key = "location-5",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-11-24 02:17:47"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-11-24 02:22:56")
+  ),
+  list(
+    farm_key = "farm-6",
+    device_key = "device-10",
+    animal_key = "cow-954",
+    location_key = "location-0",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-06-07 05:44:14"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-06-07 05:53:37")
+  ),
+  list(
+    farm_key = "farm-6",
+    device_key = "device-11",
+    animal_key = "cow-1224",
+    location_key = "location-0",
+    milking_visit_process_start_time_wall = as.POSIXct("2023-06-07 05:45:15"),
+    milking_visit_process_end_time_wall = as.POSIXct("2023-06-07 05:54:26")
+  )
+)
+
+# Use loop to filter rows based on each criteria
+for (criteria in criteria_list) {
+  milkings_ordered <- milkings_ordered %>%
+    filter(
+      !(farm_key == criteria$farm_key &
+          device_key == criteria$device_key &
+          animal_key == criteria$animal_key &
+          location_key == criteria$location_key &
+          milking_visit_process_start_time_wall %in% criteria$milking_visit_process_start_time_wall &
+          milking_visit_process_end_time_wall %in% criteria$milking_visit_process_end_time_wall)
+    )
+}
