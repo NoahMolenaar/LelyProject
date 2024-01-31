@@ -11,6 +11,8 @@ library(readxl)
 library(dplyr)
 library(openxlsx)
 library(ggplot2)
+# Suppress summarise info
+options(dplyr.summarise.inform = FALSE)
 
 # Set the working directory
 setwd("/Volumes/LaCie/Econometrie Master/Blok 3/Lely case study/New Data")
@@ -214,7 +216,7 @@ for (remaining_cow in remaining_cows[, 1]){
   
 }
 
-# VANAF HIER NIET ZO BELANGRIJK
+# VANAF HIER NIET ZO BELANGRIJK, GA NAAR LINE 270
 
 visiting_data <- subset_data %>%
   mutate(date = as.Date(milking_visit_process_start_time_wall))
@@ -258,4 +260,128 @@ ggplot(average_visits_per_day, aes(x = average_visits)) +
   theme_minimal()
 
 best_buddies <- buddies[, as.numeric(buddies[4, ]) < 6 & as.numeric(buddies[5, ]) < 6]
+
+cow_doubles <- combn(unique_cows$animal_key, 2, simplify = TRUE) 
+cow_doubles <- cow_doubles%>%
+  rbind(matrix(NA, nrow = 7, ncol = ncol(cow_doubles)))
+
+
+
+# VANAF HIER BELANGRIJK, NIEUWE BUDDIES MET PERCENTAGE
+
+threshold_visit_count <- 6
+# minimum number of days 2 cows must spend together at same location to be considered friends
+threshold_days_together <- 20
+# time difference between visits to be considered friends
+threshold_time_diff <- 600
+
+# Buddy's gebruikmakende van percentage van de visits samen
+for (i in 1:ncol(cow_doubles)){
+  
+  if (i %% 5000 == 0){
+    print(i)
+  }
+  
+  cow1 <- cow_doubles[1,i]
+  cow2 <- cow_doubles[2,i]
+  
+  # Filter data for the current cow pair and order by milking time
+  cow_pair_data <- subset_data %>%
+    filter(animal_key %in% c(cow1, cow2)) %>%
+    arrange(milking_visit_process_start_time_wall) %>%
+    select(
+      farm_key,
+      location_key,
+      device_key,
+      animal_key,
+      milking_visit_process_start_time_wall,
+      milking_visit_process_end_time_wall
+    )%>%
+    dplyr::mutate(
+      date = as.Date(milking_visit_process_start_time_wall),
+    )
+  
+  # Identify days when both cows visited the machine
+  visit_data <- cow_pair_data %>%
+    group_by(date) %>%
+    filter(n_distinct(animal_key) == 2) %>%
+    summarise(
+      visits_cow1 = sum(animal_key == cow1),
+      visits_cow2 = sum(animal_key == cow2)
+    )
+  
+  #visit_data <- visit_data %>%
+    #filter(visits_cow1 <= threshold_visit_count, visits_cow2 <= threshold_visit_count)
+  
+  # Store the results in the unique_cow_pairs matrix
+  # Total days that both cows visited
+  cow_doubles[3,i] <- nrow(visit_data)
+  # Total times cow1 visited the milking machine
+  cow_doubles[4,i] <- sum(visit_data$visits_cow1)
+  # Total times cow2 visited the milking machine
+  cow_doubles[5,i] <- sum(visit_data$visits_cow2)
+  # average times cow1 visited the milking machine per day
+  cow_doubles[6,i] <- mean(visit_data$visits_cow1, na.rm = TRUE)
+  # average times cow2 visited the milking machine per day
+  cow_doubles[7,i] <- mean(visit_data$visits_cow2, na.rm = TRUE)
+  
+  # filter out cows that visit machine too many times, and cows that didn't share enough days together
+  if (as.numeric(cow_doubles[3,i])<threshold_days_together) {
+    next  
+  }
+  
+  # Extract numeric part from animal_key
+  cow_pair_data <- cow_pair_data %>%
+    mutate(animal_key_numeric = as.numeric(sub("cow-", "", animal_key)))
+  
+  # Identify consecutive uninterupted visits for each cow
+  cow_pair_data_uninterrupted <- cow_pair_data %>%
+    group_by(
+      consecutive_visit_group = cumsum(c(TRUE, diff(animal_key_numeric) != 0)),
+      farm_key,
+      location_key,
+      animal_key
+    ) %>%
+    summarise(
+      start_time = min(milking_visit_process_start_time_wall),
+      end_time = max(milking_visit_process_end_time_wall)
+    )%>%
+    dplyr::mutate(
+      date = as.Date(start_time),
+    )
+  
+  # could be improved but works fine for now
+  cow_pair_data_uninterrupted$time_diff <- rep(NA, nrow(cow_pair_data_uninterrupted))
+  for (j in 2:nrow(cow_pair_data_uninterrupted)){
+    cow_pair_data_uninterrupted$time_diff[j]<-abs(difftime(cow_pair_data_uninterrupted$start_time[j], cow_pair_data_uninterrupted$end_time[j-1], units = "secs"))
+  }
+  
+  count_below_threshold <- cow_pair_data_uninterrupted %>%
+    filter(time_diff <= threshold_time_diff) %>%
+    summarise(count = n())
+  
+  # percentage of all visits of cow1 that were "together with" cow2
+  cow_doubles[8,i] <- nrow(count_below_threshold) / as.numeric(cow_doubles[4,i])
+  # percentage of all visits of cow2 that were "together with" cow1
+  cow_doubles[9,i] <- nrow(count_below_threshold) / as.numeric(cow_doubles[5,i])
+  
+  cow_doubles_interpretable <- t(cow_doubles)
+  
+  col_names <- c("first_cow", "second_cow", "shared_days", "n_visits_cow1", "n_visits_cow2", "avg_visits_cow1", "avg_visits_cow2", "perc_shared_visits_cow1", "perc_shared_visits_cow2")
+  colnames(cow_doubles_interpretable) <- col_names
+}
+
+cow_doubles_interpretable <- data.frame(cow_doubles_interpretable)
+
+top_percentage_cowbuddies <- 0.05
+
+combined_vector <- c(cow_doubles_interpretable[, 8], cow_doubles_interpretable[, 9])
+
+threshold_value_buddies <- quantile(as.numeric(combined_vector), 1 - top_percentage_cowbuddies, na.rm = TRUE)
+
+best_buddies <- cow_doubles_interpretable %>%
+  rowwise() %>%
+  filter(min(perc_shared_visits_cow1, perc_shared_visits_cow2) >= threshold_value_buddies)
+
+
 
